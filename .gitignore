@@ -1,5 +1,7 @@
-minici
+/minici
 *.exe
 *.test
 *.out
 /data/
+EXERCISES.md
+GO_CHEATSHEET.md
