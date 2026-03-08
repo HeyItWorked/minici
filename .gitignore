@@ -1,0 +1,5 @@
+minici
+*.exe
+*.test
+*.out
+/data/
