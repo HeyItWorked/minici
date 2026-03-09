@@ -5,10 +5,15 @@ import (
 	"os"
 	"time"
 
+	"github.com/liamnguyen/minici/internal/git"
 	"github.com/liamnguyen/minici/internal/runner"
 )
 
 func main() {
+	// GetLatestCommit — read latest commit from this repo
+	hash, message, author, err := git.GetLatestCommit(".")
+	fmt.Printf("hash=%s\nmessage=%s\nauthor=%s\nerr=%v\n\n", hash, message, author, err)
+
 	// RunCommand — buffered, returns everything at once
 	stdout, stderr, code, err := runner.RunCommand("go", []string{"version"}, 10*time.Second)
 	fmt.Printf("stdout=%q stderr=%q code=%d err=%v\n", stdout, stderr, code, err)
