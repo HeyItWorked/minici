@@ -1,30 +1,20 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/liamnguyen/minici/internal/git"
-	"github.com/liamnguyen/minici/internal/runner"
 )
 
 func main() {
-	// GetLatestCommit — read latest commit from this repo
-	hash, message, author, err := git.GetLatestCommit(".")
-	fmt.Printf("hash=%s\nmessage=%s\nauthor=%s\nerr=%v\n\n", hash, message, author, err)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
-	// RunCommand — buffered, returns everything at once
-	stdout, stderr, code, err := runner.RunCommand("go", []string{"version"}, 10*time.Second)
-	fmt.Printf("stdout=%q stderr=%q code=%d err=%v\n", stdout, stderr, code, err)
-
-	// RunStreaming — lines printed to terminal as they arrive, each timestamped
-	fmt.Println("\n[streaming]")
-	code, err = runner.RunStreaming(
-		"bash",
-		[]string{"-c", "echo line1; sleep 1; echo line2; sleep 1; echo line3"},
-		10*time.Second,
-		os.Stdout,
-	)
-	fmt.Printf("[done] code=%d err=%v\n", code, err)
+	fmt.Println("watching for new commits (10s)...")
+	git.Watch(".", 2*time.Second, ctx, func(hash string) {
+		fmt.Println("new commit:", hash)
+	})
+	fmt.Println("done")
 }
