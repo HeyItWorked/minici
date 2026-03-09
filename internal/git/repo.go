@@ -25,3 +25,19 @@ func GetLatestCommit(repoPath string) (hash, message, author string, err error) 
 
 	return
 }
+
+// ChangedFiles returns the list of files changed between two commits.
+func ChangedFiles(repoPath, fromHash, toHash string) ([]string, error) {
+	// fromHash..toHash is git's range syntax — all changes introduced between the two commits
+	cmd := exec.Command("git", "-C", repoPath, "diff", "--name-only", fromHash+".."+toHash)
+	out, execErr := cmd.Output()
+	if execErr != nil {
+		return nil, fmt.Errorf("git diff failed: %w", execErr)
+	}
+
+	// each filename is on its own line — Split gives us a slice directly
+	trimmed := strings.TrimSpace(string(out))
+	parts := strings.Split(trimmed, "\n")
+
+	return parts, nil
+}
