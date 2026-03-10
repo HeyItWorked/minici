@@ -11,8 +11,8 @@ Work in progress.
 | Module | Description | Status |
 |--------|-------------|--------|
 | Process execution | Run commands with timeout, capture output, stream logs live | ✅ |
-| Git integration | Watch repo, detect commits, diff changed files | 🔨 |
-| Pipeline definition | Parse `pipeline.yaml`, run steps sequentially or in parallel | ⬜ |
+| Git integration | Watch repo, detect commits, diff changed files | ✅ |
+| Pipeline definition | Parse `pipeline.yaml`, run steps sequentially or in parallel | 🔨 |
 | Docker integration | Run pipeline steps inside containers | ⬜ |
 | Storage | Persist build results and logs | ⬜ |
 | HTTP dashboard | REST API + live log streaming + minimal UI | ⬜ |
@@ -33,4 +33,6 @@ go run ./cmd/minici
 ```
 cmd/minici/         # entrypoint
 internal/runner/    # process execution — RunCommand, RunStreaming
+internal/git/       # git integration — GetLatestCommit, Watch, ChangedFiles
+internal/pipeline/  # pipeline — Load config, Run steps sequentially
 ```
