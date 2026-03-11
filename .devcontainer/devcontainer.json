@@ -1,6 +1,9 @@
 {
   "name": "minici",
-  "image": "mcr.microsoft.com/devcontainers/go:1.22",
+  "build": { "dockerfile": "Dockerfile" },
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
   "customizations": {
     "vscode": {
       "extensions": [
@@ -8,5 +11,6 @@
       ]
     }
   },
+  "onCreateCommand": "sudo rm -f /etc/apt/sources.list.d/yarn.list || true",
   "postCreateCommand": "go mod tidy"
 }
