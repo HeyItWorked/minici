@@ -1,8 +1,11 @@
 package pipeline
 
 import (
+	"sync"
 	"time"
+
 	"github.com/liamnguyen/minici/internal/runner"
+	"golang.org/x/sync/errgroup"
 )
 
 type StepResult struct {
@@ -23,17 +26,56 @@ func Run(p *Pipeline, workdir string, timeout time.Duration) BuildResult {
 	var results []StepResult
 	failed := false
 
-	for _, step := range p.Steps {
-		stdout, stderr, code, err := runner.RunCommand("bash", []string{"-c", step.Command}, timeout)
+	i := 0
+	for i < len(p.Steps) {
+		step := p.Steps[i]
 
-		// accumulate every step result regardless of outcome — caller needs the full picture
-		results = append(results, StepResult{Name: step.Name, ExitCode: code, Stdout: stdout, Stderr: stderr, Err: err})
+		if !step.Parallel {
+			// sequential step — run and wait before moving on
+			stdout, stderr, code, err := runner.RunCommand("bash", []string{"-c", step.Command}, timeout)
 
-		// err != nil catches crashes (binary not found etc.)
-		// code != 0 catches failures like `go test` failing — RunCommand returns err=nil for non-zero exits
-		if err != nil || code != 0 {
-			failed = true
-			break // stop on first failure
+			// accumulate every result regardless of outcome — caller needs the full picture
+			results = append(results, StepResult{Name: step.Name, ExitCode: code, Stdout: stdout, Stderr: stderr, Err: err})
+
+			// err != nil catches crashes, code != 0 catches failures like `go test` failing
+			if err != nil || code != 0 {
+				failed = true
+				break
+			}
+			i++
+		} else {
+			// collect consecutive parallel steps into a batch
+			var batch []Step
+			for i < len(p.Steps) && p.Steps[i].Parallel {
+				batch = append(batch, p.Steps[i])
+				i++
+			}
+
+			// errgroup launches each step as a goroutine and collects errors — like asyncio.gather() in Python
+			g := errgroup.Group{}
+			var mu sync.Mutex // protects results slice from concurrent writes
+
+			for _, s := range batch {
+				step := s // capture loop var — each goroutine needs its own copy, not a shared reference
+				g.Go(func() error {
+					stdout, stderr, code, err := runner.RunCommand("bash", []string{"-c", step.Command}, timeout)
+
+					mu.Lock()
+					results = append(results, StepResult{Name: step.Name, ExitCode: code, Stdout: stdout, Stderr: stderr, Err: err})
+					mu.Unlock()
+
+					if err != nil || code != 0 {
+						return err
+					}
+					return nil
+				})
+			}
+
+			// Wait blocks until all goroutines finish, returns first error if any
+			if err := g.Wait(); err != nil {
+				failed = true
+				break
+			}
 		}
 	}
 
