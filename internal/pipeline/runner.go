@@ -31,8 +31,19 @@ func Run(p *Pipeline, workdir string, timeout time.Duration) BuildResult {
 		step := p.Steps[i]
 
 		if !step.Parallel {
-			// sequential step — run and wait before moving on
-			stdout, stderr, code, err := runner.RunCommand("bash", []string{"-c", step.Command}, timeout)
+			var stdout, stderr string
+  			var code int
+  			var err error
+
+			if step.Image != "" {
+				// RunInContainer
+ 				stdout, stderr, code, err = runner.RunInContainer(step.Image, workdir, []string{"bash", "-c", step.Command}, timeout)
+
+			} else {
+				// sequential step — run and wait before moving on
+				stdout, stderr, code, err = runner.RunCommand("bash", []string{"-c", step.Command}, timeout)
+			}
+
 
 			// accumulate every result regardless of outcome — caller needs the full picture
 			results = append(results, StepResult{Name: step.Name, ExitCode: code, Stdout: stdout, Stderr: stderr, Err: err})
@@ -58,7 +69,18 @@ func Run(p *Pipeline, workdir string, timeout time.Duration) BuildResult {
 			for _, s := range batch {
 				step := s // capture loop var — each goroutine needs its own copy, not a shared reference
 				g.Go(func() error {
-					stdout, stderr, code, err := runner.RunCommand("bash", []string{"-c", step.Command}, timeout)
+					var stdout, stderr string
+  					var code int
+  					var err error
+
+					if step.Image != "" {
+						// RunInContainer
+						stdout, stderr, code, err = runner.RunInContainer(step.Image, workdir, []string{"bash", "-c", step.Command}, timeout)
+
+					} else {
+						// no image — run locally
+						stdout, stderr, code, err = runner.RunCommand("bash", []string{"-c", step.Command}, timeout)
+					}
 
 					mu.Lock()
 					results = append(results, StepResult{Name: step.Name, ExitCode: code, Stdout: stdout, Stderr: stderr, Err: err})

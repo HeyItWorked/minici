@@ -2,6 +2,7 @@ name: my-app
 steps:
   - name: test
     command: go test ./...
+    image: golang:1.22
     parallel: true
   - name: vet
     command: go vet ./...

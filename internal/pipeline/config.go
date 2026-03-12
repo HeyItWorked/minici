@@ -11,6 +11,7 @@ type Step struct {
 	Name    string `yaml:"name"`
 	Command string `yaml:"command"`
 	Parallel bool `yaml:"parallel"`
+	Image string `yaml:"image"`
 }
 
 // Pipeline is the parsed representation of pipeline.yaml.
