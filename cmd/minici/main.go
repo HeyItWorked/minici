@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	s, err := store.NewJSONStore("data/builds")
+	s, err := store.NewSQLiteStore("data/minici.db")
 	if err != nil {
 		fmt.Println("error creating store:", err)
 		return
