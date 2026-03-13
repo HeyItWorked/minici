@@ -2,27 +2,48 @@ package main
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/liamnguyen/minici/internal/pipeline"
+	"github.com/liamnguyen/minici/internal/store"
 )
 
 func main() {
-	p, err := pipeline.Load("pipeline.yaml")
+	s, err := store.NewJSONStore("data/builds")
 	if err != nil {
-		fmt.Println("error:", err)
+		fmt.Println("error creating store:", err)
 		return
 	}
 
-	result := pipeline.Run(p, "/workspaces/minici", 60*time.Second)
-	fmt.Printf("pipeline: %s  failed: %v\n", result.Pipeline, result.Failed)
-	for _, step := range result.Steps {
-		fmt.Printf("  [%s] exit=%d\n", step.Name, step.ExitCode)
-		if step.Stdout != "" {
-			fmt.Printf("    stdout: %s\n", step.Stdout)
-		}
-		if step.Err != nil {
-			fmt.Printf("    err: %v\n", step.Err)
-		}
+	// save a fake build result
+	result := pipeline.BuildResult{
+		Pipeline: "my-app",
+		Failed:   false,
+		Steps: []pipeline.StepResult{
+			{Name: "test", ExitCode: 0, Stdout: "ok"},
+			{Name: "build", ExitCode: 0},
+		},
 	}
+
+	id, err := s.Save(result)
+	if err != nil {
+		fmt.Println("error saving:", err)
+		return
+	}
+	fmt.Println("saved:", id)
+
+	// get it back by id
+	got, err := s.Get(id)
+	if err != nil {
+		fmt.Println("error getting:", err)
+		return
+	}
+	fmt.Printf("got: pipeline=%s failed=%v steps=%d\n", got.Pipeline, got.Failed, len(got.Steps))
+
+	// list all
+	all, err := s.List()
+	if err != nil {
+		fmt.Println("error listing:", err)
+		return
+	}
+	fmt.Printf("total builds: %d\n", len(all))
 }
