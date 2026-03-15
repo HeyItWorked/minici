@@ -9,21 +9,21 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
 </head>
-<body class="bg-amber-50/50 text-gray-800 font-mono min-h-screen">
+<body class="bg-stone-900 text-stone-300 font-mono min-h-screen">
 
 <div id="app">
   <!-- top bar — logo, stats, trigger button -->
-  <div class="border-b border-amber-200 px-6 py-3 flex items-center justify-between bg-amber-50">
+  <div class="border-b border-stone-700 px-6 py-3 flex items-center justify-between bg-stone-800">
     <div class="flex items-center gap-6">
-      <span class="text-emerald-700 font-bold">minici</span>
+      <span class="text-amber-400 font-bold">minici</span>
       <div v-if="builds.length" class="flex items-center gap-4 text-sm text-stone-500">
         <span>{{ builds.length }} builds</span>
-        <span class="text-emerald-600">{{ passCount }} passed</span>
-        <span class="text-red-500">{{ failCount }} failed</span>
+        <span class="text-emerald-400">{{ passCount }} passed</span>
+        <span class="text-red-400">{{ failCount }} failed</span>
       </div>
     </div>
     <button @click="trigger" :disabled="triggering"
-      class="border border-emerald-600 text-emerald-700 hover:bg-emerald-50 disabled:opacity-50 px-3 py-1 text-sm transition-colors">
+      class="border border-amber-600 text-amber-400 hover:bg-amber-900/30 disabled:opacity-50 px-3 py-1 text-sm transition-colors">
       {{ triggering ? 'running...' : '> trigger' }}
     </button>
   </div>
@@ -33,24 +33,24 @@
   <div class="flex min-h-[calc(100vh-49px)]">
 
     <!-- left panel: build list -->
-    <div class="w-80 border-r border-amber-200 overflow-y-auto bg-amber-50/30">
-      <div v-if="builds.length === 0" class="p-4 text-stone-400 text-sm">
+    <div class="w-80 border-r border-stone-700 overflow-y-auto bg-stone-850">
+      <div v-if="builds.length === 0" class="p-4 text-stone-500 text-sm">
         no builds yet
       </div>
       <div v-for="(b, i) in builds" :key="b.ID || i"
         @click="selected = b"
-        class="px-4 py-3 border-b border-amber-100 cursor-pointer hover:bg-amber-100/50 transition-colors border-l-2"
+        class="px-4 py-3 border-b border-stone-800 cursor-pointer hover:bg-stone-800 transition-colors border-l-2"
         :class="selected === b
-          ? (b.Failed ? 'bg-amber-100/60 border-l-red-500' : 'bg-amber-100/60 border-l-emerald-500')
+          ? (b.Failed ? 'bg-stone-800 border-l-red-400' : 'bg-stone-800 border-l-emerald-400')
           : 'border-l-transparent'">
         <div class="flex items-center gap-2">
-          <span class="text-xs" :class="b.Failed ? 'text-red-500' : 'text-emerald-600'">
+          <span class="text-xs" :class="b.Failed ? 'text-red-400' : 'text-emerald-400'">
             {{ b.Failed ? '✗' : '✓' }}
           </span>
-          <span class="text-sm font-bold text-gray-800">{{ b.Pipeline }}</span>
-          <span class="text-xs text-stone-400">#{{ builds.length - i }}</span>
+          <span class="text-sm font-bold text-stone-200">{{ b.Pipeline }}</span>
+          <span class="text-xs text-stone-500">#{{ builds.length - i }}</span>
         </div>
-        <div class="mt-1 flex items-center gap-3 text-xs text-stone-400">
+        <div class="mt-1 flex items-center gap-3 text-xs text-stone-500">
           <span v-if="b.CreatedAt">{{ formatTime(b.CreatedAt) }}</span>
           <span>{{ b.Steps.length }} steps</span>
           <!-- tiny dots for each step — green or red, quick visual -->
@@ -66,19 +66,19 @@
 
     <!-- right panel: selected build details -->
     <div class="flex-1 overflow-y-auto">
-      <div v-if="!selected" class="flex items-center justify-center h-full text-stone-400 text-sm">
+      <div v-if="!selected" class="flex items-center justify-center h-full text-stone-600 text-sm">
         select a build
       </div>
       <div v-else class="p-6">
         <!-- build name + pass/fail badge -->
         <div class="flex items-center gap-3 mb-1">
-          <span class="text-lg font-bold text-gray-900">{{ selected.Pipeline }}</span>
+          <span class="text-lg font-bold text-stone-100">{{ selected.Pipeline }}</span>
           <span class="text-xs px-2 py-0.5 border"
-            :class="selected.Failed ? 'border-red-300 text-red-600 bg-red-50' : 'border-emerald-300 text-emerald-700 bg-emerald-50'">
+            :class="selected.Failed ? 'border-red-700 text-red-400 bg-red-950/50' : 'border-emerald-700 text-emerald-400 bg-emerald-950/50'">
             {{ selected.Failed ? 'FAILED' : 'PASSED' }}
           </span>
         </div>
-        <div class="text-xs text-stone-400 mb-6">
+        <div class="text-xs text-stone-500 mb-6">
           <span v-if="selected.CreatedAt">{{ formatTime(selected.CreatedAt) }}</span>
           <span class="mx-2">&middot;</span>
           <span>{{ selected.Steps.length }} steps</span>
@@ -86,20 +86,20 @@
 
         <!-- each step gets its own box with header + output -->
         <div class="space-y-3">
-          <div v-for="step in selected.Steps" class="border border-amber-200 rounded">
-            <div class="px-3 py-2 flex justify-between items-center bg-amber-100/50">
+          <div v-for="step in selected.Steps" class="border border-stone-700 rounded">
+            <div class="px-3 py-2 flex justify-between items-center bg-stone-800">
               <div class="flex items-center gap-2 text-sm">
-                <span :class="step.ExitCode === 0 ? 'text-emerald-600' : 'text-red-500'">
+                <span :class="step.ExitCode === 0 ? 'text-emerald-400' : 'text-red-400'">
                   {{ step.ExitCode === 0 ? '✓' : '✗' }}
                 </span>
-                <span class="text-gray-800">{{ step.Name }}</span>
+                <span class="text-stone-200">{{ step.Name }}</span>
               </div>
-              <span class="text-xs text-stone-400">exit {{ step.ExitCode }}</span>
+              <span class="text-xs text-stone-500">exit {{ step.ExitCode }}</span>
             </div>
             <!-- stdout/stderr — only shows if there's actually output -->
-            <div v-if="step.Stdout || step.Stderr" class="px-3 py-2 bg-stone-50 text-xs">
-              <pre v-if="step.Stdout" class="text-stone-600 whitespace-pre-wrap">{{ step.Stdout }}</pre>
-              <pre v-if="step.Stderr" class="text-red-500/80 whitespace-pre-wrap mt-1">{{ step.Stderr }}</pre>
+            <div v-if="step.Stdout || step.Stderr" class="px-3 py-2 bg-stone-950 text-xs">
+              <pre v-if="step.Stdout" class="text-stone-400 whitespace-pre-wrap">{{ step.Stdout }}</pre>
+              <pre v-if="step.Stderr" class="text-red-400/80 whitespace-pre-wrap mt-1">{{ step.Stderr }}</pre>
             </div>
           </div>
         </div>

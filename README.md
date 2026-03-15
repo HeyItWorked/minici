@@ -4,9 +4,9 @@ A minimal CI runner written in Go.
 
 Watches a Git repository, triggers builds on commit, runs steps in containers, streams logs, and shows results in a dashboard.
 
-## Status
+![minici dashboard](minici-screenshot.png)
 
-Work in progress.
+## Status
 
 | Module | Description | Status |
 |--------|-------------|--------|
@@ -14,8 +14,8 @@ Work in progress.
 | Git integration | Watch repo, detect commits, diff changed files | ✅ |
 | Pipeline definition | Parse `pipeline.yaml`, run steps sequentially or in parallel | ✅ |
 | Docker integration | Run pipeline steps inside containers (Docker Go SDK) | ✅ |
-| Storage | Persist build results (JSON + SQLite), log writing | 🔨 |
-| HTTP dashboard | REST API + live log streaming + minimal UI | ⬜ |
+| Storage | Persist build results (JSON + SQLite), log writing | ✅ |
+| HTTP dashboard | REST API + embedded HTML dashboard | ✅ |
 
 ## Getting Started
 
@@ -26,6 +26,7 @@ git clone https://github.com/HeyItWorked/minici
 cd minici
 # Open in VS Code → "Reopen in Container"
 go run ./cmd/minici
+# Open http://localhost:8080
 ```
 
 ## Project Structure
@@ -36,4 +37,5 @@ internal/runner/    # process execution — RunCommand, RunStreaming, RunInConta
 internal/git/       # git integration — GetLatestCommit, Watch, ChangedFiles
 internal/pipeline/  # pipeline — Load YAML config, Run steps (sequential + parallel + container)
 internal/store/     # persistence — JSONStore, SQLiteStore, LogStore
+internal/api/       # HTTP server — REST endpoints, embedded dashboard
 ```
