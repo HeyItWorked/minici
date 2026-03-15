@@ -12,9 +12,9 @@ Work in progress.
 |--------|-------------|--------|
 | Process execution | Run commands with timeout, capture output, stream logs live | ✅ |
 | Git integration | Watch repo, detect commits, diff changed files | ✅ |
-| Pipeline definition | Parse `pipeline.yaml`, run steps sequentially or in parallel | 🔨 |
-| Docker integration | Run pipeline steps inside containers | ⬜ |
-| Storage | Persist build results and logs | ⬜ |
+| Pipeline definition | Parse `pipeline.yaml`, run steps sequentially or in parallel | ✅ |
+| Docker integration | Run pipeline steps inside containers (Docker Go SDK) | ✅ |
+| Storage | Persist build results (JSON + SQLite), log writing | 🔨 |
 | HTTP dashboard | REST API + live log streaming + minimal UI | ⬜ |
 
 ## Getting Started
@@ -32,7 +32,8 @@ go run ./cmd/minici
 
 ```
 cmd/minici/         # entrypoint
-internal/runner/    # process execution — RunCommand, RunStreaming
+internal/runner/    # process execution — RunCommand, RunStreaming, RunInContainer
 internal/git/       # git integration — GetLatestCommit, Watch, ChangedFiles
-internal/pipeline/  # pipeline — Load config, Run steps sequentially
+internal/pipeline/  # pipeline — Load YAML config, Run steps (sequential + parallel + container)
+internal/store/     # persistence — JSONStore, SQLiteStore, LogStore
 ```

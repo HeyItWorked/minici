@@ -1,6 +1,7 @@
 package store
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"io"
@@ -37,16 +38,39 @@ func (l *LogStore) WriteLog(buildID string, line string) error {
 	if err != nil {
 		return err
 	}
-	defer file.Close() // Go's version of Python's "with open() as f" — auto-closes when function exits
+	defer file.Close() // auto-closes when function exits
 
 	_, err = fmt.Fprintln(file, line)
 	return err
 }
 
 // TailLog streams a build's log file to out, then watches for new lines (like tail -f).
-// Depends on: WriteLog (writes the lines that TailLog reads)
 // Stops when ctx is cancelled (e.g. client disconnects or build finishes).
-// TODO: implement catch-up read + polling loop (see issue #13)
 func (l *LogStore) TailLog(buildID string, ctx context.Context, out io.Writer) error {
-	return nil
+	path := filepath.Join(l.dir, buildID+".log")
+	file, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	// catch up: read everything already in the file
+	// scanner acts like a bookmark — it remembers where it stopped
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		fmt.Fprintln(out, scanner.Text())
+	}
+
+	// poll: check for new lines every 200ms until cancelled
+	// <- waits to receive from a channel (like await queue.get() in Python)
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-time.After(200 * time.Millisecond):
+			for scanner.Scan() {
+				fmt.Fprintln(out, scanner.Text())
+			}
+		}
+	}
 }
