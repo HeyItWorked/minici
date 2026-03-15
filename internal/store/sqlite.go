@@ -119,11 +119,14 @@ func (s *SQLiteStore) Get(id string) (pipeline.BuildResult, error) {
 
 	// --- fetch build ---
 	// QueryRow = "I expect exactly one row". Returns a single row, not a cursor.
-	row := s.db.QueryRow("SELECT pipeline, failed FROM builds WHERE id = ?", id)
-	err := row.Scan(&result.Pipeline, &result.Failed)
+	row := s.db.QueryRow("SELECT pipeline, failed, created_at FROM builds WHERE id = ?", id)
+	err := row.Scan(&result.Pipeline, &result.Failed, &result.CreatedAt)
 	if err != nil {
 		return pipeline.BuildResult{}, err
 	}
+
+	// we already have the id from the function arg, just stick it on the result
+	result.ID = id
 
 	// --- fetch steps ---
 	steps, err := s.querySteps(id)
@@ -142,7 +145,7 @@ func (s *SQLiteStore) Get(id string) (pipeline.BuildResult, error) {
 // The "id" column is fetched only to pass to querySteps — it's the glue between the two queries.
 func (s *SQLiteStore) List() ([]pipeline.BuildResult, error) {
 	// Query = "I expect multiple rows". Returns a cursor we iterate with rows.Next().
-	rows, err := s.db.Query("SELECT id, pipeline, failed FROM builds ORDER BY created_at DESC")
+	rows, err := s.db.Query("SELECT id, pipeline, failed, created_at FROM builds ORDER BY created_at DESC")
 	if err != nil {
 		return nil, err
 	}
@@ -157,10 +160,11 @@ func (s *SQLiteStore) List() ([]pipeline.BuildResult, error) {
 		var id string
 		var result pipeline.BuildResult
 
-		err = rows.Scan(&id, &result.Pipeline, &result.Failed)
+		err = rows.Scan(&id, &result.Pipeline, &result.Failed, &result.CreatedAt)
 		if err != nil {
 			return nil, err
 		}
+		result.ID = id
 
 		// --- fetch steps for this build ---
 		steps, err := s.querySteps(id)

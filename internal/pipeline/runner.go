@@ -17,9 +17,11 @@ type StepResult struct {
 }
 
 type BuildResult struct {
-	Pipeline string
-	Steps    []StepResult
-	Failed   bool
+	ID        string // only filled when loading from the database — Run() doesn't set this
+	CreatedAt string // same deal, comes from SQLite's created_at column
+	Pipeline  string
+	Steps     []StepResult
+	Failed    bool
 }
 
 func Run(p *Pipeline, workdir string, timeout time.Duration) BuildResult {

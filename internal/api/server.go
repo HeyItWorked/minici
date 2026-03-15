@@ -14,13 +14,20 @@
 package api
 
 import (
+	"embed"
 	"encoding/json"
+	"io/fs"
 	"net/http"
 	"time"
 
 	"github.com/liamnguyen/minici/internal/pipeline"
 	"github.com/liamnguyen/minici/internal/store"
 )
+
+// embeds static/ directory into the binary at compile time — no external files needed at runtime
+//
+//go:embed static
+var staticFiles embed.FS
 
 // Server holds dependencies that handlers need.
 // Same idea as LogStore holding dir or SQLiteStore holding db.
@@ -46,6 +53,11 @@ func respondJSON(w http.ResponseWriter, status int, data any) {
 func (s *Server) SetupRouter() http.Handler {
 	// Go 1.22+ lets you put the HTTP method right in the pattern
 	mux := http.NewServeMux()
+
+	// serve the embedded HTML dashboard at root
+	// fs.Sub strips the "static" prefix so index.html is served at / not /static/
+	staticSub, _ := fs.Sub(staticFiles, "static")
+	mux.Handle("GET /", http.FileServer(http.FS(staticSub)))
 
 	mux.HandleFunc("GET /builds", s.ListBuilds)
 	mux.HandleFunc("GET /builds/{id}", s.GetBuild)

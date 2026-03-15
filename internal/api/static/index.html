@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>minici</title>
+  <!-- tailwind + vue from CDN — same setup as before, just using them for
+       layout classes and data binding so we don't write raw DOM stuff -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+</head>
+<body class="bg-amber-50/50 text-gray-800 font-mono min-h-screen">
+
+<div id="app">
+  <!-- top bar — logo, stats, trigger button -->
+  <div class="border-b border-amber-200 px-6 py-3 flex items-center justify-between bg-amber-50">
+    <div class="flex items-center gap-6">
+      <span class="text-emerald-700 font-bold">minici</span>
+      <div v-if="builds.length" class="flex items-center gap-4 text-sm text-stone-500">
+        <span>{{ builds.length }} builds</span>
+        <span class="text-emerald-600">{{ passCount }} passed</span>
+        <span class="text-red-500">{{ failCount }} failed</span>
+      </div>
+    </div>
+    <button @click="trigger" :disabled="triggering"
+      class="border border-emerald-600 text-emerald-700 hover:bg-emerald-50 disabled:opacity-50 px-3 py-1 text-sm transition-colors">
+      {{ triggering ? 'running...' : '> trigger' }}
+    </button>
+  </div>
+
+  <!-- two panels — build list on the left, details on the right.
+       this is what was missing before, just one column looked empty -->
+  <div class="flex min-h-[calc(100vh-49px)]">
+
+    <!-- left panel: build list -->
+    <div class="w-80 border-r border-amber-200 overflow-y-auto bg-amber-50/30">
+      <div v-if="builds.length === 0" class="p-4 text-stone-400 text-sm">
+        no builds yet
+      </div>
+      <div v-for="(b, i) in builds" :key="b.ID || i"
+        @click="selected = b"
+        class="px-4 py-3 border-b border-amber-100 cursor-pointer hover:bg-amber-100/50 transition-colors border-l-2"
+        :class="selected === b
+          ? (b.Failed ? 'bg-amber-100/60 border-l-red-500' : 'bg-amber-100/60 border-l-emerald-500')
+          : 'border-l-transparent'">
+        <div class="flex items-center gap-2">
+          <span class="text-xs" :class="b.Failed ? 'text-red-500' : 'text-emerald-600'">
+            {{ b.Failed ? '✗' : '✓' }}
+          </span>
+          <span class="text-sm font-bold text-gray-800">{{ b.Pipeline }}</span>
+          <span class="text-xs text-stone-400">#{{ builds.length - i }}</span>
+        </div>
+        <div class="mt-1 flex items-center gap-3 text-xs text-stone-400">
+          <span v-if="b.CreatedAt">{{ formatTime(b.CreatedAt) }}</span>
+          <span>{{ b.Steps.length }} steps</span>
+          <!-- tiny dots for each step — green or red, quick visual -->
+          <span class="flex gap-0.5">
+            <span v-for="step in b.Steps"
+              class="w-1.5 h-1.5 rounded-full"
+              :class="step.ExitCode === 0 ? 'bg-emerald-500' : 'bg-red-500'"
+              :title="step.Name"></span>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- right panel: selected build details -->
+    <div class="flex-1 overflow-y-auto">
+      <div v-if="!selected" class="flex items-center justify-center h-full text-stone-400 text-sm">
+        select a build
+      </div>
+      <div v-else class="p-6">
+        <!-- build name + pass/fail badge -->
+        <div class="flex items-center gap-3 mb-1">
+          <span class="text-lg font-bold text-gray-900">{{ selected.Pipeline }}</span>
+          <span class="text-xs px-2 py-0.5 border"
+            :class="selected.Failed ? 'border-red-300 text-red-600 bg-red-50' : 'border-emerald-300 text-emerald-700 bg-emerald-50'">
+            {{ selected.Failed ? 'FAILED' : 'PASSED' }}
+          </span>
+        </div>
+        <div class="text-xs text-stone-400 mb-6">
+          <span v-if="selected.CreatedAt">{{ formatTime(selected.CreatedAt) }}</span>
+          <span class="mx-2">&middot;</span>
+          <span>{{ selected.Steps.length }} steps</span>
+        </div>
+
+        <!-- each step gets its own box with header + output -->
+        <div class="space-y-3">
+          <div v-for="step in selected.Steps" class="border border-amber-200 rounded">
+            <div class="px-3 py-2 flex justify-between items-center bg-amber-100/50">
+              <div class="flex items-center gap-2 text-sm">
+                <span :class="step.ExitCode === 0 ? 'text-emerald-600' : 'text-red-500'">
+                  {{ step.ExitCode === 0 ? '✓' : '✗' }}
+                </span>
+                <span class="text-gray-800">{{ step.Name }}</span>
+              </div>
+              <span class="text-xs text-stone-400">exit {{ step.ExitCode }}</span>
+            </div>
+            <!-- stdout/stderr — only shows if there's actually output -->
+            <div v-if="step.Stdout || step.Stderr" class="px-3 py-2 bg-stone-50 text-xs">
+              <pre v-if="step.Stdout" class="text-stone-600 whitespace-pre-wrap">{{ step.Stdout }}</pre>
+              <pre v-if="step.Stderr" class="text-red-500/80 whitespace-pre-wrap mt-1">{{ step.Stderr }}</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+Vue.createApp({
+  data() {
+    return { builds: [], selected: null, triggering: false }
+  },
+  computed: {
+    // just counting pass/fail for the header stats
+    passCount() { return this.builds.filter(b => !b.Failed).length },
+    failCount() { return this.builds.filter(b => b.Failed).length }
+  },
+  mounted() {
+    this.load()
+  },
+  methods: {
+    load() {
+      fetch('/builds').then(r => r.json()).then(data => {
+        this.builds = data || []
+        // auto-select the newest build so the right panel isn't blank on load
+        if (this.builds.length && !this.selected) this.selected = this.builds[0]
+      })
+    },
+    trigger() {
+      this.triggering = true
+      fetch('/builds', { method: 'POST' })
+        .then(() => { this.load(); this.triggering = false })
+        .catch(() => { this.triggering = false })
+    },
+    // turns sqlite timestamp into "5m ago" / "2h ago" / date
+    // sqlite can return different formats so we try a few
+    formatTime(ts) {
+      let d = new Date(ts)
+      if (isNaN(d)) d = new Date(ts.replace(' ', 'T') + 'Z')
+      if (isNaN(d)) return ts
+      const now = new Date()
+      const diff = (now - d) / 1000
+      if (diff < 60) return 'just now'
+      if (diff < 3600) return Math.floor(diff / 60) + 'm ago'
+      if (diff < 86400) return Math.floor(diff / 3600) + 'h ago'
+      return d.toLocaleDateString()
+    }
+  }
+}).mount('#app')
+</script>
+
+</body>
+</html>
