@@ -35,11 +35,12 @@ type Server struct {
 	store    *store.SQLiteStore
 	pipeline *pipeline.Pipeline
 	workdir  string
+	demo     bool // when true, trigger endpoint returns 403 instead of running commands
 }
 
 // NewServer creates a Server with its dependencies wired in.
-func NewServer(s *store.SQLiteStore, p *pipeline.Pipeline, workdir string) *Server {
-	return &Server{store: s, pipeline: p, workdir: workdir}
+func NewServer(s *store.SQLiteStore, p *pipeline.Pipeline, workdir string, demo bool) *Server {
+	return &Server{store: s, pipeline: p, workdir: workdir, demo: demo}
 }
 
 // respondJSON writes a status code and JSON body to the response.
@@ -91,6 +92,12 @@ func (s *Server) GetBuild(w http.ResponseWriter, r *http.Request) {
 
 // TriggerBuild — POST /builds
 func (s *Server) TriggerBuild(w http.ResponseWriter, r *http.Request) {
+	// in demo mode, don't let anyone run real commands
+	if s.demo {
+		http.Error(w, "demo mode — trigger disabled", http.StatusForbidden)
+		return
+	}
+
 	// unlike babel-shelf's CreateBook, no JSON body to decode —
 	// we run the pipeline and the result IS the thing we save
 	result := pipeline.Run(s.pipeline, s.workdir, 5*time.Minute)
