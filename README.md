@@ -6,6 +6,8 @@ Watches a Git repository, triggers builds on commit, runs steps in containers, s
 
 ![minici dashboard](minici-screenshot.png)
 
+**[Live Demo](https://heyitworked.github.io/minici/)**
+
 ## Status
 
 | Module | Description | Status |
